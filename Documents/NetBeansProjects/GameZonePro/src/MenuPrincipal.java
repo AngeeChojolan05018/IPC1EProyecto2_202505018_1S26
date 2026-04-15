@@ -110,7 +110,7 @@ public class MenuPrincipal extends JFrame {
     
     JScrollPane scrollCatalogo = new JScrollPane(catalogo);
     
-    // Carrito D
+    // Carrito PD
      JPanel carrito = new JPanel(new BorderLayout());
     carrito.setPreferredSize(new Dimension(250, 0));
 

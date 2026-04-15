@@ -1,4 +1,4 @@
-public class Nodo {
+public class Nodo { //Lista enlazada
     String nombre;
     String precio;
     Nodo siguiente;
