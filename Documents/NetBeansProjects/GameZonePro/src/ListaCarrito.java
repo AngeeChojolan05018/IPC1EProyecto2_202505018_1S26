@@ -1,4 +1,4 @@
-public class ListaCarrito {
+public class ListaCarrito { //
     Nodo inicio;
 
     public ListaCarrito() {
