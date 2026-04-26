@@ -42,8 +42,34 @@ public class ListaCarrito { //
 
         aux = aux.siguiente;
     }
-
+    
     return total;
+}
+    
+    public void eliminar(String nombre) {
+    if (inicio == null) return;
+
+    // Si el primero es el que se elimina
+    if (inicio.nombre.equals(nombre)) {
+        inicio = inicio.siguiente;
+        return;
     }
+
+    Nodo actual = inicio;
+    Nodo anterior = null;
+
+    while (actual != null && !actual.nombre.equals(nombre)) {
+        anterior = actual;
+        actual = actual.siguiente;
+    }
+
+    if (actual != null) {
+        anterior.siguiente = actual.siguiente;
+    }
+}
+    
+    public void vaciar() {
+    inicio = null;
+}
     
 }
