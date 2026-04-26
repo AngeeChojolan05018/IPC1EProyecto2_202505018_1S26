@@ -6,14 +6,14 @@ class ListaVentas {
 
     public void agregar(Venta venta) {
     NodoVenta nuevo = new NodoVenta(venta);
-    nuevo.siguiente = inicio;
-    inicio = nuevo;
+    nuevo.siguiente = cabeza;
+    cabeza = nuevo;
 }
 
     public void guardarEnArchivo() {
     try {
         BufferedWriter bw = new BufferedWriter(new FileWriter("historial.txt"));
-        NodoVenta aux = inicio;
+        NodoVenta aux = cabeza;
 
         while (aux != null) {
             bw.write(aux.venta.toString());
@@ -33,19 +33,13 @@ class ListaVentas {
         String linea;
 
         while ((linea = br.readLine()) != null) {
-            // Suponiendo formato: nombre,precio,cantidad
-            String[] datos = linea.split(",");
-
-            String nombre = datos[0];
-            int precio = Integer.parseInt(datos[1]);
-            int cantidad = Integer.parseInt(datos[2]);
-
-            agregar(new Venta(nombre, precio, cantidad));
+            Venta v = Venta.desdeTexto(linea);
+            agregar(v);
         }
 
         br.close();
     } catch (IOException e) {
-        System.out.println("No hay historial previo");
+        System.out.println("No hay archivo aún");
     }
 }
     
