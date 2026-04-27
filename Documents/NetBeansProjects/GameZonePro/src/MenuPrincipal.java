@@ -34,13 +34,18 @@ public class MenuPrincipal extends JFrame {
     private JList<Torneo> listaTorneos;
     private Torneo torneoSeleccionado;
     private JLabel lblInfoTorneo;
+    private Usuario usuarioActual = new Usuario("Jugador1");
+    private boolean[] filaPremiada = new boolean[4];
+    private JLabel lblNivel;
+    private JProgressBar barraXP;
     
     public MenuPrincipal() {
         setTitle("GameZone Pro");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        
+       
+        usuarioActual.agregarXP(10);
         
         album.cargar();
 
@@ -53,7 +58,7 @@ public class MenuPrincipal extends JFrame {
         contenedor.add(PanelTienda(), "tienda");
         panelAlbumRef = panelAlbum();
         contenedor.add(panelAlbumRef, "album");
-        contenedor.add(crearPanel("Recompensas Y tablero de lideres"), "recompensas");
+        contenedor.add(panelRecompensas(), "recompensas");
         contenedor.add(panelReportes(), "reportes");
         contenedor.add(crearPanel("Datos del Estudiante"), "datos");
         contenedor.add(panelEventos(), "eventos");
@@ -221,7 +226,7 @@ public class MenuPrincipal extends JFrame {
             JOptionPane.showMessageDialog(null, "El carrito está vacío");
             return;
         }
-
+        System.out.println("XP: " + usuarioActual.getXP());
         StringBuilder sinStock = new StringBuilder();
 
         // VALIDAR STOCK
@@ -255,6 +260,9 @@ public class MenuPrincipal extends JFrame {
             int precio = Integer.parseInt(precioTexto.replace("Q", ""));
             
             listaVentas.agregar(new Venta(nombre, precio, cantidad));
+            
+            usuarioActual.agregarXP(50 * cantidad);
+            actualizarNivelUI();
             
             int stockActual = stockMap.get(nombre);
             stockActual -= cantidad;
@@ -403,6 +411,24 @@ public class MenuPrincipal extends JFrame {
      private JPanel panelEventos() {
 
     JPanel panel = new JPanel(new BorderLayout());
+        lblNivel = new JLabel("Nivel: 1 - Aprendiz");
+        barraXP = new JProgressBar();
+        barraXP.setStringPainted(true);
+
+
+        JPanel panelNivel = new JPanel();
+            panelNivel.setLayout(new BoxLayout(panelNivel, BoxLayout.Y_AXIS));
+
+            lblNivel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            barraXP.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            barraXP.setPreferredSize(new Dimension(300, 25));
+
+            panelNivel.add(lblNivel);
+            panelNivel.add(Box.createRigidArea(new Dimension(0, 10)));
+            panelNivel.add(barraXP);
+
+        panel.add(panelNivel, BorderLayout.NORTH);
 
     // TÍTULO
     JLabel titulo = new JLabel("Eventos Especiales - Venta de Tickets", JLabel.CENTER);
@@ -487,6 +513,8 @@ public class MenuPrincipal extends JFrame {
 
         if (!nombre.isEmpty()) {
             colaEventos.encolar(nombre);
+            usuarioActual.agregarXP(150);
+            actualizarNivelUI();
             txtNombre.setText("");
             actualizarCola();
         }
@@ -513,6 +541,10 @@ public class MenuPrincipal extends JFrame {
     panel.add(centro, BorderLayout.CENTER);
     panel.add(panelTaquillas, BorderLayout.EAST);
     panel.add(sur, BorderLayout.SOUTH);
+    
+    lblNivel = new JLabel("Nivel: 1 - Aprendiz");
+    barraXP = new JProgressBar();
+    barraXP.setStringPainted(true);
 
     return panel;
 }
@@ -634,6 +666,7 @@ public class MenuPrincipal extends JFrame {
                 "\nDefensa: " + carta.defensa +
                 "\nPS: " + carta.ps
             );
+            
             }
                 if (filaSel == -1) {
             // Primera selección
@@ -701,7 +734,18 @@ public class MenuPrincipal extends JFrame {
             ps,
             ""
         );
+        
+        if (nueva.rareza.equals("Legendaria")) {
+            usuarioActual.agregarXP(200);
+            actualizarNivelUI();
+        }
+        
+        
         album.agregarPrimeraDisponible(nueva);
+                verificarFilaCompleta(0);
+                verificarFilaCompleta(1);
+                verificarFilaCompleta(2);
+                verificarFilaCompleta(3);
 
         refrescarAlbum();
     });
@@ -718,6 +762,39 @@ public class MenuPrincipal extends JFrame {
     return panel;
 }
     
+    private JPanel panelRecompensas() {
+    JPanel panel = new JPanel(new BorderLayout());
+
+    JLabel titulo = new JLabel("Recompensas y tablero de líderes", JLabel.CENTER);
+    titulo.setFont(new Font("Arial", Font.BOLD, 20));
+
+    // NIVEL
+    lblNivel = new JLabel("Nivel: 1 - Aprendiz", JLabel.CENTER);
+
+    barraXP = new JProgressBar();
+    barraXP.setStringPainted(true);
+
+    JPanel panelNivel = new JPanel(new GridLayout(2,1));
+    panelNivel.add(lblNivel);
+    panelNivel.add(barraXP);
+
+    // BOTÓN REGRESAR
+    JButton regresar = new JButton("Regresar al menú");
+    regresar.addActionListener(e -> cardLayout.show(contenedor, "menu"));
+
+    JPanel sur = new JPanel();
+    sur.add(regresar);
+    
+    panel.add(titulo, BorderLayout.NORTH);
+    panel.add(panelNivel, BorderLayout.NORTH);
+    panel.add(sur, BorderLayout.SOUTH);
+    barraXP.setPreferredSize(new Dimension(300, 25));
+    
+    // Actualizar
+    actualizarNivelUI();
+
+    return panel;
+}
     
     private void agregarCarta(int fila, int columna) {
 
@@ -777,17 +854,17 @@ public class MenuPrincipal extends JFrame {
     }
     
         private void refrescarAlbum() {
-    contenedor.remove(panelAlbumRef);
+            contenedor.remove(panelAlbumRef);
 
-    panelAlbumRef = panelAlbum();
+            panelAlbumRef = panelAlbum();
 
-    contenedor.add(panelAlbumRef, "album");
+            contenedor.add(panelAlbumRef, "album");
 
-    contenedor.revalidate();
-    contenedor.repaint();
+            contenedor.revalidate();
+            contenedor.repaint();
 
-    cardLayout.show(contenedor, "album");
-}
+            cardLayout.show(contenedor, "album");
+        }
         
         private DefaultListModel<Torneo> cargarTorneos() {
 
@@ -822,6 +899,38 @@ public class MenuPrincipal extends JFrame {
 
     return modelo;
 }
+        private void verificarFilaCompleta(int fila) {
+
+            int contador = 0;
+
+            for (int j = 0; j < 6; j++) {
+                if (album.obtener(fila, j) != null) {
+                    contador++;
+                }
+            }
+
+            // SOLO premiar una vez
+            if (contador == 6 && !filaPremiada[fila]) {
+                filaPremiada[fila] = true;
+
+                usuarioActual.agregarXP(100);
+                actualizarNivelUI();
+                JOptionPane.showMessageDialog(null, "¡Fila completada! +100 XP");
+
+                
+            }
+        }
+
+       private void actualizarNivelUI() {
+            lblNivel.setText("Nivel: " + usuarioActual.getNivel() + 
+                             " - " + usuarioActual.getRango());
+
+            barraXP.setMaximum(usuarioActual.getXPNecesario());
+            barraXP.setValue(usuarioActual.getXPProgreso());
+
+            barraXP.setString(usuarioActual.getXPProgreso() + "/" 
+                + usuarioActual.getXPNecesario() + " XP");
+        } 
         
     public static void main(String[] args) {
         new MenuPrincipal();
