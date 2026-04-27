@@ -15,13 +15,21 @@ public class MenuPrincipal extends JFrame {
     private java.util.Map<String, Integer> stockMap = new java.util.HashMap<>();
     private java.util.Map<String, JLabel> stockLabels = new java.util.HashMap<>();  
     private ListaVentas listaVentas = new ListaVentas();
+    private MatrizAlbum album = new MatrizAlbum(4, 6); 
+    private String textoBusqueda = "";
+    private JPanel panelAlbumRef;
+    private JTextArea areaDetalle;
+    private int filaSel = -1;
+    private int colSel = -1;
     
-
     public MenuPrincipal() {
         setTitle("GameZone Pro");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        
+        
+        album.cargar();
 
         cardLayout = new CardLayout();
         contenedor = new JPanel(cardLayout);
@@ -30,7 +38,8 @@ public class MenuPrincipal extends JFrame {
         // Crear paneles
         contenedor.add(menuPrincipal(), "menu");
         contenedor.add(PanelTienda(), "tienda");
-        contenedor.add(crearPanel("Álbum de Cartas"), "album");
+        panelAlbumRef = panelAlbum();
+        contenedor.add(panelAlbumRef, "album");
         contenedor.add(crearPanel("Eventos Especiales"), "eventos");
         contenedor.add(crearPanel("Recompensas Y tablero de lideres"), "recompensas");
         contenedor.add(panelReportes(), "reportes");
@@ -387,6 +396,245 @@ public class MenuPrincipal extends JFrame {
     lblTotal.setText("Total: Q" + total);
 }
     
+    
+    private JPanel panelAlbum() {
+
+    JPanel panel = new JPanel(new BorderLayout());
+
+    JLabel titulo = new JLabel("Álbum de Cartas", JLabel.CENTER);
+    titulo.setFont(new Font("Arial", Font.BOLD, 20));
+
+    
+    JTextField txtBuscar = new JTextField(15);
+
+        txtBuscar.addKeyListener(new KeyAdapter() {
+        public void keyReleased(KeyEvent e) {
+            textoBusqueda = txtBuscar.getText();
+
+            // refrescar panel
+            contenedor.remove(panelAlbumRef);
+
+            panelAlbumRef = panelAlbum();
+
+            contenedor.add(panelAlbumRef, "album");
+
+            cardLayout.show(contenedor, "album");
+        }
+    });
+        
+        
+        JPanel top = new JPanel(new BorderLayout());
+    top.add(titulo, BorderLayout.CENTER);
+    top.add(txtBuscar, BorderLayout.SOUTH);
+
+    areaDetalle = new JTextArea();
+    areaDetalle.setEditable(false);
+    areaDetalle.setPreferredSize(new Dimension(200, 0));
+    areaDetalle.setBorder(BorderFactory.createTitledBorder("Detalles de la Carta"));
+    
+    
+    JPanel grid = new JPanel(new GridLayout(4, 6, 5, 5));
+
+    NodoMatriz fila = album.getInicio();
+
+    for (int i = 0; i < 4; i++) {
+        NodoMatriz col = fila;
+
+        for (int j = 0; j < 6; j++) {
+
+            JButton celda = new JButton();
+
+            if (col.dato == null) {
+                celda.setText("Vacío");
+                celda.setBackground(Color.LIGHT_GRAY);
+            } else {
+                celda.setText("<html>" +
+                        col.dato.nombre + "<br>" +
+                        col.dato.tipo + "<br>" +
+                        col.dato.rareza +
+                        "</html>");
+
+                celda.setBackground(obtenerColor(col.dato.tipo));
+            }
+
+            if (col.dato != null && textoBusqueda != null && !textoBusqueda.isEmpty() &&
+                col.dato.nombre.toLowerCase().contains(textoBusqueda.toLowerCase())) {
+
+                celda.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
+            }
+
+            int f = i;
+            int c = j;
+
+            celda.addActionListener(e -> {
+                Carta carta = album.obtener(f, c);
+
+        if (carta == null) {
+            areaDetalle.setText("Espacio vacío");
+        } else {
+            areaDetalle.setText(
+                "Código: " + carta.codigo +
+                "\nNombre: " + carta.nombre +
+                "\nTipo: " + carta.tipo +
+                "\nRareza: " + carta.rareza +
+                "\nAtaque: " + carta.ataque +
+                "\nDefensa: " + carta.defensa +
+                "\nPS: " + carta.ps
+            );
+            }
+                if (filaSel == -1) {
+            // Primera selección
+            filaSel = f;
+            colSel = c;
+
+            areaDetalle.append("\n\nSeleccionada primera carta");
+
+        } else {
+            // Segunda selección → INTERCAMBIO
+
+            Carta c1 = album.obtener(filaSel, colSel);
+            Carta c2 = album.obtener(f, c);
+
+            album.insertar(filaSel, colSel, c2);
+            album.insertar(f, c, c1);
+
+            // reset selección
+            filaSel = -1;
+            colSel = -1;
+
+            refrescarAlbum();
+        }
+
+        });
+
+            grid.add(celda);
+            col = col.derecha;
+        }
+
+        fila = fila.abajo;
+    }
+
+    JScrollPane scroll = new JScrollPane(grid);
+
+    // BOTONES
+    JButton regresar = new JButton("Regresar");
+    regresar.addActionListener(e -> cardLayout.show(contenedor, "menu"));
+
+    JButton btnAgregar = new JButton("Agregar carta");
+
+    btnAgregar.addActionListener(e -> {
+
+        String[] nombres = {"Dragón", "Guerrero", "Mago", "Bestia", "Titán"};
+        String[] tipos = {"Fuego", "Agua", "Planta", "Eléctrico", "Psíquico"};
+        String[] rarezas = {"Común", "Rara", "Ultra Rara", "Legendaria"};
+
+        int randNombre = (int)(Math.random() * nombres.length);
+        int randTipo = (int)(Math.random() * tipos.length);
+        int randRareza = (int)(Math.random() * rarezas.length);
+
+        String codigo = "CARTA-" + (int)(Math.random() * 1000);
+
+        int ataque = (int)(Math.random() * 100) + 50;
+        int defensa = (int)(Math.random() * 100) + 50;
+        int ps = (int)(Math.random() * 200) + 100;
+
+        Carta nueva = new Carta(
+            codigo,
+            nombres[randNombre],
+            tipos[randTipo],
+            rarezas[randRareza],
+            ataque,
+            defensa,
+            ps,
+            ""
+        );
+        album.agregarPrimeraDisponible(nueva);
+
+        refrescarAlbum();
+    });
+
+    JPanel panelBotones = new JPanel();
+    panelBotones.add(btnAgregar);
+    panelBotones.add(regresar);
+
+    panel.add(top, BorderLayout.NORTH);
+    panel.add(scroll, BorderLayout.CENTER);
+    panel.add(areaDetalle, BorderLayout.EAST);
+    panel.add(panelBotones, BorderLayout.SOUTH);
+
+    return panel;
+}
+    
+    
+    private void agregarCarta(int fila, int columna) {
+
+    String[] nombres = {"Dragón", "Guerrero", "Mago", "Bestia", "Titán"};
+    String[] tipos = {"Fuego", "Agua", "Planta", "Eléctrico", "Psíquico"};
+    String[] rarezas = {"Común", "Rara", "Ultra Rara", "Legendaria"};
+
+    int randNombre = (int)(Math.random() * nombres.length);
+    int randTipo = (int)(Math.random() * tipos.length);
+    int randRareza = (int)(Math.random() * rarezas.length);
+
+    String codigo = "CARTA-" + (int)(Math.random() * 1000);
+
+    int ataque = (int)(Math.random() * 100) + 50;
+    int defensa = (int)(Math.random() * 100) + 50;
+    int ps = (int)(Math.random() * 200) + 100;
+
+    Carta nueva = new Carta(
+            codigo,
+            nombres[randNombre],
+            tipos[randTipo],
+            rarezas[randRareza],
+            ataque,
+            defensa,
+            ps,
+            "ruta.png"
+    );
+
+    album.insertar(fila, columna, nueva);
+
+    refrescarAlbum(); // IMPORTANTE
+}
+    
+    private Color obtenerColor(String tipo) {
+    switch (tipo) {
+        case "Fuego": return Color.RED;
+        case "Agua": return Color.CYAN;
+        case "Planta": return Color.GREEN;
+        case "Eléctrico": return Color.YELLOW;
+        case "Psíquico": return Color.MAGENTA;
+        case "Oscuro": return Color.DARK_GRAY;
+        case "Acero": return Color.GRAY;
+        default: return Color.WHITE;
+        }
+    }
+    
+    private void mostrarDetalleCarta(Carta carta) {
+    JOptionPane.showMessageDialog(null,
+            "Código: " + carta.codigo +
+            "\nNombre: " + carta.nombre +
+            "\nTipo: " + carta.tipo +
+            "\nRareza: " + carta.rareza +
+            "\nAtaque: " + carta.ataque +
+            "\nDefensa: " + carta.defensa +
+            "\nPS: " + carta.ps
+        );
+    }
+    
+        private void refrescarAlbum() {
+    contenedor.remove(panelAlbumRef);
+
+    panelAlbumRef = panelAlbum();
+
+    contenedor.add(panelAlbumRef, "album");
+
+    contenedor.revalidate();
+    contenedor.repaint();
+
+    cardLayout.show(contenedor, "album");
+}
     
     public static void main(String[] args) {
         new MenuPrincipal();
