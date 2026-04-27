@@ -2,6 +2,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.table.DefaultTableModel;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.PrintWriter;
+import java.io.File;
 
 public class MenuPrincipal extends JFrame {
 
@@ -21,6 +25,15 @@ public class MenuPrincipal extends JFrame {
     private JTextArea areaDetalle;
     private int filaSel = -1;
     private int colSel = -1;
+    private Cola colaEventos = new Cola();
+    private JTextArea areaCola;
+    private JTextArea areaLog;
+    private JLabel lblTaquilla1;
+    private JLabel lblTaquilla2;
+    private ListaTickets listaTickets = new ListaTickets();
+    private JList<Torneo> listaTorneos;
+    private Torneo torneoSeleccionado;
+    private JLabel lblInfoTorneo;
     
     public MenuPrincipal() {
         setTitle("GameZone Pro");
@@ -40,20 +53,26 @@ public class MenuPrincipal extends JFrame {
         contenedor.add(PanelTienda(), "tienda");
         panelAlbumRef = panelAlbum();
         contenedor.add(panelAlbumRef, "album");
-        contenedor.add(crearPanel("Eventos Especiales"), "eventos");
         contenedor.add(crearPanel("Recompensas Y tablero de lideres"), "recompensas");
         contenedor.add(panelReportes(), "reportes");
         contenedor.add(crearPanel("Datos del Estudiante"), "datos");
+        contenedor.add(panelEventos(), "eventos");
 
         add(contenedor);
 
         listaVentas.cargarDesdeArchivo();
         
         addWindowListener(new WindowAdapter() {
-        public void windowClosing(WindowEvent e) {
+         public void windowClosing(WindowEvent e) {
             listaVentas.guardarEnArchivo();
         }
     });
+        
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                listaTickets.guardarEnArchivo();
+            }
+        });
         
         setVisible(true);
     }
@@ -381,6 +400,140 @@ public class MenuPrincipal extends JFrame {
     return panel;
 }
     
+     private JPanel panelEventos() {
+
+    JPanel panel = new JPanel(new BorderLayout());
+
+    // TÍTULO
+    JLabel titulo = new JLabel("Eventos Especiales - Venta de Tickets", JLabel.CENTER);
+    titulo.setFont(new Font("Arial", Font.BOLD, 18));
+
+    // INPUT USUARIO
+    JPanel panelTop = new JPanel();
+
+    JTextField txtNombre = new JTextField(15);
+    JButton btnAgregar = new JButton("Entrar a la cola");
+
+    panelTop.add(new JLabel("Nombre:"));
+    panelTop.add(txtNombre);
+    panelTop.add(btnAgregar);
+
+    // CONTENEDOR SUPERIOR (TÍTULO + INPUT)
+    JPanel topContainer = new JPanel(new BorderLayout());
+    topContainer.add(titulo, BorderLayout.NORTH);
+    topContainer.add(panelTop, BorderLayout.SOUTH);
+
+    // LISTA DE TORNEOS
+    DefaultListModel<Torneo> modeloTorneos = cargarTorneos();
+    listaTorneos = new JList<>(modeloTorneos);
+
+    JScrollPane scrollTorneos = new JScrollPane(listaTorneos);
+    scrollTorneos.setBorder(BorderFactory.createTitledBorder("Torneos"));
+
+    // INFO TORNEO
+    lblInfoTorneo = new JLabel("Selecciona un torneo");
+
+    listaTorneos.addListSelectionListener(e -> {
+        torneoSeleccionado = listaTorneos.getSelectedValue();
+
+        if (torneoSeleccionado != null) {
+            lblInfoTorneo.setText(
+                torneoSeleccionado.nombre + " | " +
+                torneoSeleccionado.juego + " | Tickets: " +
+                torneoSeleccionado.ticketsDisponibles
+            );
+        }
+    });
+
+    // AREA COLA
+    areaCola = new JTextArea();
+    areaCola.setEditable(false);
+    areaCola.setBorder(BorderFactory.createTitledBorder("Cola de espera"));
+
+    // AREA LOG
+    areaLog = new JTextArea();
+    areaLog.setEditable(false);
+    areaLog.setBorder(BorderFactory.createTitledBorder("Log de ventas"));
+
+    // CENTRO
+    JPanel centro = new JPanel(new GridLayout(1, 2));
+    centro.add(new JScrollPane(areaCola));
+    centro.add(new JScrollPane(areaLog));
+
+    // ESTADO TAQUILLAS
+    JPanel panelTaquillas = new JPanel(new GridLayout(2,1));
+
+    lblTaquilla1 = new JLabel("Taquilla 1: Libre");
+    lblTaquilla2 = new JLabel("Taquilla 2: Libre");
+
+    panelTaquillas.add(lblTaquilla1);
+    panelTaquillas.add(lblTaquilla2);
+
+    // BOTÓN INICIAR
+    JButton btnIniciar = new JButton("Iniciar venta");
+
+    btnIniciar.addActionListener(e -> {
+        iniciarVenta();
+    });
+
+    // EVENTO AGREGAR A COLA
+    btnAgregar.addActionListener(e -> {
+        String nombre = txtNombre.getText();
+
+        if (torneoSeleccionado == null) {
+            JOptionPane.showMessageDialog(null, "Selecciona un torneo primero");
+            return;
+        }
+
+        if (!nombre.isEmpty()) {
+            colaEventos.encolar(nombre);
+            txtNombre.setText("");
+            actualizarCola();
+        }
+    });
+
+    // BOTÓN REGRESAR
+    JButton regresar = new JButton("Regresar");
+    regresar.addActionListener(e -> cardLayout.show(contenedor, "menu"));
+
+    // PANEL SUR
+    JPanel sur = new JPanel();
+    sur.setLayout(new GridLayout(2,1));
+
+    JPanel botones = new JPanel();
+    botones.add(btnIniciar);
+    botones.add(regresar);
+
+    sur.add(lblInfoTorneo);
+    sur.add(botones);
+
+    // AGREGAR TODO
+    panel.add(topContainer, BorderLayout.NORTH);
+    panel.add(scrollTorneos, BorderLayout.WEST);
+    panel.add(centro, BorderLayout.CENTER);
+    panel.add(panelTaquillas, BorderLayout.EAST);
+    panel.add(sur, BorderLayout.SOUTH);
+
+    return panel;
+}
+    
+    private void actualizarCola() {
+    areaCola.setText(colaEventos.mostrar());
+}
+    
+    private void iniciarVenta() {
+        if (torneoSeleccionado == null) {
+            JOptionPane.showMessageDialog(null, "Selecciona un torneo primero");
+            return;
+        }
+
+    Taquilla t1 = new Taquilla("Taquilla1", colaEventos, torneoSeleccionado, areaLog, lblTaquilla1, areaCola, listaTickets);
+    Taquilla t2 = new Taquilla("Taquilla2", colaEventos, torneoSeleccionado, areaLog, lblTaquilla2, areaCola, listaTickets);
+
+    t1.start();
+    t2.start();
+}
+    
     private void actualizarTotal() {
     int total = 0;
 
@@ -595,7 +748,7 @@ public class MenuPrincipal extends JFrame {
 
     album.insertar(fila, columna, nueva);
 
-    refrescarAlbum(); // IMPORTANTE
+    refrescarAlbum();
 }
     
     private Color obtenerColor(String tipo) {
@@ -635,7 +788,41 @@ public class MenuPrincipal extends JFrame {
 
     cardLayout.show(contenedor, "album");
 }
-    
+        
+        private DefaultListModel<Torneo> cargarTorneos() {
+
+    DefaultListModel<Torneo> modelo = new DefaultListModel<>();
+
+    try {
+        BufferedReader br = new BufferedReader(new FileReader("torneos.txt"));
+        String linea;
+
+        while ((linea = br.readLine()) != null) {
+
+            String[] partes = linea.split("\\|");
+
+            Torneo t = new Torneo(
+                partes[0], // ID
+                partes[1], // nombre
+                partes[2], // juego
+                partes[3], // fecha
+                partes[4], // hora
+                Integer.parseInt(partes[5]), // precio
+                Integer.parseInt(partes[6])  // tickets
+            );
+
+            modelo.addElement(t);
+        }
+
+        br.close();
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+
+    return modelo;
+}
+        
     public static void main(String[] args) {
         new MenuPrincipal();
     }
