@@ -96,37 +96,28 @@ private void construir() {
 }
     
     public void cargar() {
+    limpiar();
+    
     try {
         BufferedReader br = new BufferedReader(new FileReader("album.txt"));
-
         String linea;
-
         while ((linea = br.readLine()) != null) {
-
             String[] partes = linea.split(",");
-
             Carta carta = new Carta(
-                partes[0],
-                partes[1], 
-                partes[2], 
-                partes[3], 
-                Integer.parseInt(partes[4]), 
-                Integer.parseInt(partes[5]), 
-                Integer.parseInt(partes[6]), 
-                partes.length > 7 ? partes[7] : "" 
+                partes[0], partes[1], partes[2], partes[3], 
+                Integer.parseInt(partes[4]), Integer.parseInt(partes[5]), 
+                Integer.parseInt(partes[6]), partes.length > 7 ? partes[7] : ""
             );
-
             agregarPrimeraDisponible(carta);
         }
-
         br.close();
-
     } catch (IOException e) {
         System.out.println("No hay archivo o error al cargar");
     }
+
     
    limpiar();
-}
+    }
     
     public void agregarPrimeraDisponible(Carta carta) {
 

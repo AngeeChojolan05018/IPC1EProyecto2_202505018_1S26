@@ -1,0 +1,6 @@
+NOMBRE|Angee Ximena Chojolán Oliva
+CARNET|202505018
+CORREO|3902547890101@ingenieria.usac.edu.gt
+SECCION|E
+SEMESTRE|Primer Semestre 2026
+DESCRIPCION|GameZone Pro es una plataforma de entretenimiento digital que integra tienda de videojuegos, álbum de cartas coleccionables, torneos concurrentes y sistema de gamificación con logros y leaderboard.
